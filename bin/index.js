@@ -65,6 +65,17 @@ async function getTopics(boardId) {
 }
 
 async function main() {
+  console.log(cli.input, cli.flags);
+  if (!boardId) {
+    const answer = await inquirer.prompt({
+      type: "input",
+      name: "boardId",
+      message: "Enter your board ID"
+    });
+    boardId = answer.boardId;
+    config.set("boardId", boardId);
+  }
+
   if (!listId) {
     const resp = await getTopics(boardId);
     const topics = resp.data.map(topic => ({
@@ -83,9 +94,8 @@ async function main() {
     console.log("listId:", listId);
     config.set("listId", listId);
   }
-  // const question = await getQuestion();
+  const question = await getQuestion();
   // saveQuestion(question, LIST_ID);
 }
 
 main();
-console.log(cli.input, cli.flags);
