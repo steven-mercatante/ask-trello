@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 
+// TODO: need a way to change boardId
+// TODO: might need a way to change listId
+
 const axios = require("axios");
 const inquirer = require("inquirer");
 const meow = require("meow");
