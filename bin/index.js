@@ -5,9 +5,11 @@ const inquirer = require("inquirer");
 const meow = require("meow");
 const Conf = require("conf");
 
-const API_KEY = process.env.TRELLO_API_KEY;
-const AUTH_TOKEN = process.env.TRELLO_AUTH_TOKEN;
-const LIST_ID = "xxxxx"; // TODO: don't hardcode
+const config = new Conf();
+let apiKey = config.get("apiKey");
+let authToken = config.get("authToken");
+let boardId = config.get("boardId");
+let listId = config.get("listId");
 
 function saveQuestion(question, listId) {
   axios
@@ -15,14 +17,12 @@ function saveQuestion(question, listId) {
       name: question,
       idList: listId,
       pos: "top",
-      key: API_KEY,
-      token: AUTH_TOKEN
+      key: apiKey,
+      token: authToken
     })
     .then(resp => console.log(resp))
     .catch(err => console.log(err));
 }
-
-async function getTopicIds() {}
 
 const cli = meow(
   `
@@ -39,40 +39,56 @@ const cli = meow(
 );
 
 async function getQuestion() {
-  if (cli.input[0]) {
-    return cli.input[0];
+  if (cli.input.length > 0) {
+    return cli.input.join(" ");
   }
 
   // user didn't type a question
   const response = await inquirer.prompt({
     type: "input",
     name: "question",
-    message: "What's your question, friendo?"
+    message: "What's your question, friend?"
   });
   return response.question;
 }
 
-const config = new Conf();
-let boardId = config.get("boardId");
-let listId = config.get("listId");
-
 async function getTopics(boardId) {
   // TODO: catch error
   const resp = await axios.get(
-    `https://api.trello.com/1/boards/${boardId}/lists?key=${API_KEY}&token=${AUTH_TOKEN}`
+    `https://api.trello.com/1/boards/${boardId}/lists?key=${apiKey}&token=${authToken}`
   );
   return resp;
 }
 
 async function main() {
-  console.log(cli.input, cli.flags);
+  if (!apiKey) {
+    const response = await inquirer.prompt({
+      type: "input",
+      name: "apiKey",
+      message: "Enter your Trello API key (see https://trello.com/app-key/)"
+    });
+    apiKey = response.apiKey;
+    config.set("apiKey", apiKey);
+  }
+
+  if (!authToken) {
+    const response = await inquirer.prompt({
+      type: "input",
+      name: "authToken",
+      message:
+        "Enter your Trello auth token (see: https://developers.trello.com/page/authorization)"
+    });
+    authToken = response.authToken;
+    config.set("authToken", authToken);
+  }
+
   if (!boardId) {
-    const answer = await inquirer.prompt({
+    const response = await inquirer.prompt({
       type: "input",
       name: "boardId",
       message: "Enter your board ID"
     });
-    boardId = answer.boardId;
+    boardId = response.boardId;
     config.set("boardId", boardId);
   }
 
@@ -83,19 +99,18 @@ async function main() {
       value: topic.id
     }));
 
-    console.log("topics:", topics);
-    const answer = await inquirer.prompt({
+    const response = await inquirer.prompt({
       type: "list",
       name: "topic",
       message: "Select a topic:",
       choices: topics
     });
-    listId = answer.topic;
-    console.log("listId:", listId);
+    listId = response.topic;
     config.set("listId", listId);
   }
   const question = await getQuestion();
-  // saveQuestion(question, LIST_ID);
+  console.log(`question: "${question}"`);
+  saveQuestion(question, listId);
 }
 
 main();
