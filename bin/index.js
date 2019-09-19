@@ -15,6 +15,13 @@ let authToken = config.get("authToken");
 let boardId = config.get("boardId");
 let listId = config.get("listId");
 
+/**
+ * ask config topic // shows list of topics and prompts user to select one
+ * ask config --unset topic
+ * ask config info // outputs path to config file & existing config values
+ * ask config board [value] // prints existing boardId value, or sets new one
+ */
+
 function saveQuestion(question, listId) {
   axios
     .post("https://api.trello.com/1/cards", {
@@ -118,7 +125,29 @@ async function main() {
     config.set("listId", listId);
   }
 
-  yargs.command(questionCmd).argv;
+  yargs.command(questionCmd).command({
+    command: "config <setting>",
+    desc: "Set configuration options",
+    handler: async argv => {
+      console.log("+++ config +++", argv);
+      const { setting } = argv;
+      switch (setting) {
+        case "boardId":
+          const boardId = argv._[1];
+          if (boardId) {
+            config.set("boardId", boardId);
+            console.log(chalk.green.bold(`boardId set to "${boardId}"`));
+          } else {
+            console.log(`boardId: ${config.get("boardId")}`);
+          }
+          break;
+
+        default:
+          console.log(chalk.red.bold(`Unknown setting "${setting}"`));
+          process.exit();
+      }
+    }
+  }).argv;
 }
 
 main();
