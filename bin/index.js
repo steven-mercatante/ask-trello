@@ -5,7 +5,7 @@
 
 const axios = require("axios");
 const inquirer = require("inquirer");
-const meow = require("meow");
+const yargs = require("yargs");
 const Conf = require("conf");
 
 const config = new Conf();
@@ -15,6 +15,7 @@ let boardId = config.get("boardId");
 let listId = config.get("listId");
 
 function saveQuestion(question, listId) {
+  console.log("listId:...", listId);
   axios
     .post("https://api.trello.com/1/cards", {
       name: question,
@@ -23,30 +24,15 @@ function saveQuestion(question, listId) {
       key: apiKey,
       token: authToken
     })
-    .then(resp => console.log(resp))
-    .catch(err => console.log(err));
+    .then(resp => {
+      console.log(resp);
+    })
+    .catch(err => {
+      // console.log(err);
+    });
 }
 
-const cli = meow(
-  `
-  Usage
-    $ ask <question>
-  
-  Options
-    --topic, -t  The question's topic
-
-  Example
-    $ ask "how to build a CLI tool?" -t automation
-`,
-  {}
-);
-
-async function getQuestion() {
-  if (cli.input.length > 0) {
-    return cli.input.join(" ");
-  }
-
-  // user didn't type a question
+async function promptForQuestion() {
   const response = await inquirer.prompt({
     type: "input",
     name: "question",
@@ -63,7 +49,7 @@ async function getTopics(boardId) {
   return resp;
 }
 
-async function main() {
+async function authorize() {
   if (!apiKey) {
     const response = await inquirer.prompt({
       type: "input",
@@ -84,6 +70,26 @@ async function main() {
     authToken = response.authToken;
     config.set("authToken", authToken);
   }
+}
+
+const questionCmd = {
+  command: "qestion",
+  aliases: ["q"],
+  desc: "Ask a question",
+  handler: async argv => {
+    let question = argv._.slice(1)
+      .join(" ")
+      .trim();
+    if (!question) {
+      question = await promptForQuestion();
+    }
+    console.log(`>>>> !${question}!`);
+    saveQuestion(question, listId);
+  }
+};
+
+async function main() {
+  await authorize();
 
   if (!boardId) {
     const response = await inquirer.prompt({
@@ -111,9 +117,8 @@ async function main() {
     listId = response.topic;
     config.set("listId", listId);
   }
-  const question = await getQuestion();
-  console.log(`question: "${question}"`);
-  saveQuestion(question, listId);
+
+  yargs.command(questionCmd).argv;
 }
 
 main();
