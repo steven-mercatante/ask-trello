@@ -1,7 +1,5 @@
 #!/usr/bin/env node
 
-// TODO: should listId be named topicId, so it's decoupled from Trello?
-
 const axios = require("axios");
 const chalk = require("chalk");
 const inquirer = require("inquirer");
@@ -14,7 +12,7 @@ const config = new Conf();
 let apiKey = config.get("apiKey");
 let authToken = config.get("authToken");
 let boardId = config.get("boardId");
-let listId = config.get("listId");
+let topicId = config.get("topicId");
 
 /**
  * ask config topic // shows list of topics and prompts user to select one
@@ -23,11 +21,11 @@ let listId = config.get("listId");
  * ask config board [value] // prints existing boardId value, or sets new one
  */
 
-function saveQuestion(question, listId) {
+function saveQuestion(question, topicId) {
   axios
     .post("https://api.trello.com/1/cards", {
       name: question,
-      idList: listId,
+      idList: topicId,
       pos: "top",
       key: apiKey,
       token: authToken
@@ -36,9 +34,13 @@ function saveQuestion(question, listId) {
       console.log(chalk.green.bold("Success!"));
     })
     .catch(err => {
-      const { status, data } = err.response;
-      console.log(chalk.red.bold(`A ${status} error occurred: "${data}"`));
+      printError(err);
     });
+}
+
+function printError(err) {
+  const { status, data } = err.response;
+  console.log(chalk.red.bold(`A ${status} error occurred: "${data}"`));
 }
 
 async function promptForQuestion() {
@@ -58,9 +60,9 @@ async function getTopics(boardId) {
   return resp;
 }
 
-async function getTopic(listId) {
+async function getTopic(topicId) {
   const resp = await axios.get(
-    `https://api.trello.com/1/lists/${listId}?key=${apiKey}&token=${authToken}`
+    `https://api.trello.com/1/lists/${topicId}?key=${apiKey}&token=${authToken}`
   );
   return resp;
 }
@@ -88,6 +90,12 @@ async function authorize() {
   }
 }
 
+async function checkForTopicId() {
+  if (!topicId) {
+    await promptForTopic();
+  }
+}
+
 const questionCmd = {
   command: "question",
   aliases: ["q"],
@@ -99,7 +107,7 @@ const questionCmd = {
     if (!question) {
       question = await promptForQuestion();
     }
-    saveQuestion(question, listId);
+    saveQuestion(question, topicId);
   }
 };
 
@@ -117,13 +125,14 @@ async function promptForTopic() {
     message: "Select a topic:",
     choices: topics
   });
-  listId = response.topic;
-  config.set("listId", listId);
+  topicId = response.topic;
+  config.set("topicId", topicId);
   console.log("BBB");
 }
 
 async function main() {
   await authorize();
+  await checkForTopicId();
 
   if (!boardId) {
     const response = await inquirer.prompt({
@@ -135,7 +144,7 @@ async function main() {
     config.set("boardId", boardId);
   }
 
-  if (!listId) {
+  if (!topicId) {
     promptForTopic();
   }
 
@@ -171,11 +180,16 @@ async function main() {
           if (directive === "set") {
             await promptForTopic();
           } else {
-            const topic = await getTopic(listId);
-            const { name, id } = topic.data;
-            console.log(chalk.green.bold(`Current topic:`));
-            console.log(`Name: ${name}`);
-            console.log(`Id: ${id}`);
+            try {
+              const topic = await getTopic(topicId);
+              const { name, id } = topic.data;
+              console.log(chalk.green.bold(`Current topic:`));
+              console.log(`Name: ${name}`);
+              console.log(`Id: ${id}`);
+            } catch (err) {
+              printError(err);
+              process.exit();
+            }
           }
           break;
 
