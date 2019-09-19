@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
-// TODO: need a way to change boardId
-// TODO: might need a way to change listId
+// TODO: should listId be named topicId, so it's decoupled from Trello?
 
 const axios = require("axios");
 const chalk = require("chalk");
@@ -11,6 +10,7 @@ const Conf = require("conf");
 const Table = require("cli-table");
 
 const config = new Conf();
+// TODO: maybe store these in a dict that's populated from config.store
 let apiKey = config.get("apiKey");
 let authToken = config.get("authToken");
 let boardId = config.get("boardId");
@@ -58,6 +58,13 @@ async function getTopics(boardId) {
   return resp;
 }
 
+async function getTopic(listId) {
+  const resp = await axios.get(
+    `https://api.trello.com/1/lists/${listId}?key=${apiKey}&token=${authToken}`
+  );
+  return resp;
+}
+
 async function authorize() {
   if (!apiKey) {
     const response = await inquirer.prompt({
@@ -96,6 +103,25 @@ const questionCmd = {
   }
 };
 
+async function promptForTopic() {
+  console.log("AAAAAAA");
+  const resp = await getTopics(boardId);
+  const topics = resp.data.map(topic => ({
+    name: topic.name,
+    value: topic.id
+  }));
+
+  const response = await inquirer.prompt({
+    type: "list",
+    name: "topic",
+    message: "Select a topic:",
+    choices: topics
+  });
+  listId = response.topic;
+  config.set("listId", listId);
+  console.log("BBB");
+}
+
 async function main() {
   await authorize();
 
@@ -110,20 +136,7 @@ async function main() {
   }
 
   if (!listId) {
-    const resp = await getTopics(boardId);
-    const topics = resp.data.map(topic => ({
-      name: topic.name,
-      value: topic.id
-    }));
-
-    const response = await inquirer.prompt({
-      type: "list",
-      name: "topic",
-      message: "Select a topic:",
-      choices: topics
-    });
-    listId = response.topic;
-    config.set("listId", listId);
+    promptForTopic();
   }
 
   yargs.command(questionCmd).command({
@@ -150,6 +163,20 @@ async function main() {
           });
           table.push(...Object.entries(config.store));
           console.log(table.toString());
+          break;
+
+        case "topic":
+          // TODO: rename directive to ...?
+          const directive = argv._[1] && argv._[1].trim();
+          if (directive === "set") {
+            await promptForTopic();
+          } else {
+            const topic = await getTopic(listId);
+            const { name, id } = topic.data;
+            console.log(chalk.green.bold(`Current topic:`));
+            console.log(`Name: ${name}`);
+            console.log(`Id: ${id}`);
+          }
           break;
 
         default:
