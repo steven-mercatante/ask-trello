@@ -82,7 +82,7 @@ async function authorize() {
 }
 
 const questionCmd = {
-  command: "qestion",
+  command: "question",
   aliases: ["q"],
   desc: "Ask a question",
   handler: async argv => {
