@@ -4,6 +4,7 @@
 // TODO: might need a way to change listId
 
 const axios = require("axios");
+const chalk = require("chalk");
 const inquirer = require("inquirer");
 const yargs = require("yargs");
 const Conf = require("conf");
@@ -15,7 +16,6 @@ let boardId = config.get("boardId");
 let listId = config.get("listId");
 
 function saveQuestion(question, listId) {
-  console.log("listId:...", listId);
   axios
     .post("https://api.trello.com/1/cards", {
       name: question,
@@ -25,10 +25,11 @@ function saveQuestion(question, listId) {
       token: authToken
     })
     .then(resp => {
-      console.log(resp);
+      console.log(chalk.green.bold("Success!"));
     })
     .catch(err => {
-      // console.log(err);
+      const { status, data } = err.response;
+      console.log(chalk.red.bold(`A ${status} error occurred: "${data}"`));
     });
 }
 
@@ -83,7 +84,6 @@ const questionCmd = {
     if (!question) {
       question = await promptForQuestion();
     }
-    console.log(`>>>> !${question}!`);
     saveQuestion(question, listId);
   }
 };
