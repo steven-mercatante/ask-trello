@@ -4,8 +4,9 @@
 // TODO: might need a way to change listId
 
 const axios = require("axios");
+const chalk = require("chalk");
 const inquirer = require("inquirer");
-const meow = require("meow");
+const yargs = require("yargs");
 const Conf = require("conf");
 
 const config = new Conf();
@@ -13,6 +14,13 @@ let apiKey = config.get("apiKey");
 let authToken = config.get("authToken");
 let boardId = config.get("boardId");
 let listId = config.get("listId");
+
+/**
+ * ask config topic // shows list of topics and prompts user to select one
+ * ask config --unset topic
+ * ask config info // outputs path to config file & existing config values
+ * ask config board [value] // prints existing boardId value, or sets new one
+ */
 
 function saveQuestion(question, listId) {
   axios
@@ -23,30 +31,16 @@ function saveQuestion(question, listId) {
       key: apiKey,
       token: authToken
     })
-    .then(resp => console.log(resp))
-    .catch(err => console.log(err));
+    .then(resp => {
+      console.log(chalk.green.bold("Success!"));
+    })
+    .catch(err => {
+      const { status, data } = err.response;
+      console.log(chalk.red.bold(`A ${status} error occurred: "${data}"`));
+    });
 }
 
-const cli = meow(
-  `
-  Usage
-    $ ask <question>
-  
-  Options
-    --topic, -t  The question's topic
-
-  Example
-    $ ask "how to build a CLI tool?" -t automation
-`,
-  {}
-);
-
-async function getQuestion() {
-  if (cli.input.length > 0) {
-    return cli.input.join(" ");
-  }
-
-  // user didn't type a question
+async function promptForQuestion() {
   const response = await inquirer.prompt({
     type: "input",
     name: "question",
@@ -63,7 +57,7 @@ async function getTopics(boardId) {
   return resp;
 }
 
-async function main() {
+async function authorize() {
   if (!apiKey) {
     const response = await inquirer.prompt({
       type: "input",
@@ -84,6 +78,25 @@ async function main() {
     authToken = response.authToken;
     config.set("authToken", authToken);
   }
+}
+
+const questionCmd = {
+  command: "qestion",
+  aliases: ["q"],
+  desc: "Ask a question",
+  handler: async argv => {
+    let question = argv._.slice(1)
+      .join(" ")
+      .trim();
+    if (!question) {
+      question = await promptForQuestion();
+    }
+    saveQuestion(question, listId);
+  }
+};
+
+async function main() {
+  await authorize();
 
   if (!boardId) {
     const response = await inquirer.prompt({
@@ -111,9 +124,30 @@ async function main() {
     listId = response.topic;
     config.set("listId", listId);
   }
-  const question = await getQuestion();
-  console.log(`question: "${question}"`);
-  saveQuestion(question, listId);
+
+  yargs.command(questionCmd).command({
+    command: "config <setting>",
+    desc: "Set configuration options",
+    handler: async argv => {
+      console.log("+++ config +++", argv);
+      const { setting } = argv;
+      switch (setting) {
+        case "boardId":
+          const boardId = argv._[1];
+          if (boardId) {
+            config.set("boardId", boardId);
+            console.log(chalk.green.bold(`boardId set to "${boardId}"`));
+          } else {
+            console.log(`boardId: ${config.get("boardId")}`);
+          }
+          break;
+
+        default:
+          console.log(chalk.red.bold(`Unknown setting "${setting}"`));
+          process.exit();
+      }
+    }
+  }).argv;
 }
 
 main();
