@@ -3,6 +3,7 @@
 const axios = require("axios");
 const chalk = require("chalk");
 const inquirer = require("inquirer");
+const ora = require("ora");
 const yargs = require("yargs");
 const Conf = require("conf");
 const Table = require("cli-table");
@@ -112,8 +113,10 @@ const questionCmd = {
 };
 
 async function promptForTopic() {
-  console.log("AAAAAAA");
+  const spinner = ora("Fetching topics");
+  spinner.start();
   const resp = await getTopics(boardId);
+  spinner.stop();
   const topics = resp.data.map(topic => ({
     name: topic.name,
     value: topic.id
@@ -127,7 +130,6 @@ async function promptForTopic() {
   });
   topicId = response.topic;
   config.set("topicId", topicId);
-  console.log("BBB");
 }
 
 async function main() {
@@ -152,7 +154,6 @@ async function main() {
     command: "config <setting>",
     desc: "Set configuration options",
     handler: async argv => {
-      console.log("+++ config +++", argv);
       const { setting } = argv;
       switch (setting) {
         case "boardId":
