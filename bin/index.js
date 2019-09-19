@@ -8,6 +8,7 @@ const chalk = require("chalk");
 const inquirer = require("inquirer");
 const yargs = require("yargs");
 const Conf = require("conf");
+const Table = require("cli-table");
 
 const config = new Conf();
 let apiKey = config.get("apiKey");
@@ -140,6 +141,15 @@ async function main() {
           } else {
             console.log(`boardId: ${config.get("boardId")}`);
           }
+          break;
+
+        case "info":
+          console.log(`Config located at: ${config.path}`);
+          const table = new Table({
+            head: ["Setting", "Value"]
+          });
+          table.push(...Object.entries(config.store));
+          console.log(table.toString());
           break;
 
         default:
