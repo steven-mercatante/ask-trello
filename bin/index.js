@@ -9,8 +9,13 @@ const Conf = require("conf");
 const Table = require("cli-table");
 
 const conf = new Conf();
+const config = {
+  apiKey: conf.get("apiKey"),
+  authToken: conf.get("authToken"),
+  boardId: conf.get("boardId"),
+  topicId: conf.get("topicId")
+};
 console.log(conf.path);
-console.log(conf.store);
 
 /**
  * ask config topic // shows list of topics and prompts user to select one
@@ -27,8 +32,8 @@ function saveQuestion(question, topicId) {
       name: question,
       idList: topicId,
       pos: "top",
-      key: conf.get("apiKey"),
-      token: conf.get("authToken")
+      key: config.apiKey,
+      token: config.authToken
     })
     .then(resp => {
       console.log(chalk.green.bold("Success!"));
@@ -54,7 +59,7 @@ async function promptForQuestion() {
 
 async function getTopics(boardId) {
   // TODO: catch error
-  const { apiKey, authToken } = conf.store;
+  const { apiKey, authToken } = config;
   const resp = await axios.get(
     `https://api.trello.com/1/boards/${boardId}/lists?key=${apiKey}&token=${authToken}`
   );
@@ -62,7 +67,7 @@ async function getTopics(boardId) {
 }
 
 async function getTopic(topicId) {
-  const { apiKey, authToken } = conf.store;
+  const { apiKey, authToken } = config;
   const resp = await axios.get(
     `https://api.trello.com/1/lists/${topicId}?key=${apiKey}&token=${authToken}`
   );
@@ -70,7 +75,7 @@ async function getTopic(topicId) {
 }
 
 async function authorize() {
-  if (!conf.get("apiKey")) {
+  if (!config["apiKey"]) {
     const response = await inquirer.prompt({
       type: "input",
       name: "apiKey",
@@ -79,7 +84,7 @@ async function authorize() {
     conf.set("apiKey", response.apiKey);
   }
 
-  if (!conf.get("authToken")) {
+  if (!config.authToken) {
     const response = await inquirer.prompt({
       type: "input",
       name: "authToken",
@@ -91,13 +96,13 @@ async function authorize() {
 }
 
 async function checkForBoardId() {
-  if (!conf.get("boardId")) {
+  if (!config.boardId) {
     await promptForBoardId();
   }
 }
 
 async function checkForTopicId() {
-  if (!conf.get("topicId")) {
+  if (!config.topicId) {
     await promptForTopic();
   }
 }
@@ -178,7 +183,9 @@ async function main() {
           const table = new Table({
             head: ["Setting", "Value"]
           });
-          table.push(...Object.entries(conf.store));
+          Object.entries(config).forEach(([k, v]) => {
+            table.push([k, v || ""]);
+          });
           console.log(table.toString());
           break;
 
