@@ -16,7 +16,6 @@ const config = {
   boardId: conf.get("boardId"),
   topicId: conf.get("topicId")
 };
-console.log(conf.path);
 
 /**
  * ask config topic // shows list of topics and prompts user to select one
@@ -148,7 +147,7 @@ async function promptForTopic() {
 
   const response = await inquirer.prompt({
     type: "list",
-    name: "topic",
+    name: "topicId",
     message: "Select a topic:",
     choices: topics
   });
