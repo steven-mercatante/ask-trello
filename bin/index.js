@@ -8,12 +8,9 @@ const yargs = require("yargs");
 const Conf = require("conf");
 const Table = require("cli-table");
 
-const config = new Conf();
-// TODO: maybe store these in a dict that's populated from config.store
-let apiKey = config.get("apiKey");
-let authToken = config.get("authToken");
-let boardId = config.get("boardId");
-let topicId = config.get("topicId");
+const conf = new Conf();
+console.log(conf.path);
+console.log(conf.store);
 
 /**
  * ask config topic // shows list of topics and prompts user to select one
@@ -22,14 +19,16 @@ let topicId = config.get("topicId");
  * ask config board [value] // prints existing boardId value, or sets new one
  */
 
+// TODO: you should be able to call config command without having been prev authenticated
+
 function saveQuestion(question, topicId) {
   axios
     .post("https://api.trello.com/1/cards", {
       name: question,
       idList: topicId,
       pos: "top",
-      key: apiKey,
-      token: authToken
+      key: conf.get("apiKey"),
+      token: conf.get("authToken")
     })
     .then(resp => {
       console.log(chalk.green.bold("Success!"));
@@ -55,6 +54,7 @@ async function promptForQuestion() {
 
 async function getTopics(boardId) {
   // TODO: catch error
+  const { apiKey, authToken } = conf.store;
   const resp = await axios.get(
     `https://api.trello.com/1/boards/${boardId}/lists?key=${apiKey}&token=${authToken}`
   );
@@ -62,6 +62,7 @@ async function getTopics(boardId) {
 }
 
 async function getTopic(topicId) {
+  const { apiKey, authToken } = conf.store;
   const resp = await axios.get(
     `https://api.trello.com/1/lists/${topicId}?key=${apiKey}&token=${authToken}`
   );
@@ -69,30 +70,34 @@ async function getTopic(topicId) {
 }
 
 async function authorize() {
-  if (!apiKey) {
+  if (!conf.get("apiKey")) {
     const response = await inquirer.prompt({
       type: "input",
       name: "apiKey",
       message: "Enter your Trello API key (see https://trello.com/app-key/)"
     });
-    apiKey = response.apiKey;
-    config.set("apiKey", apiKey);
+    conf.set("apiKey", response.apiKey);
   }
 
-  if (!authToken) {
+  if (!conf.get("authToken")) {
     const response = await inquirer.prompt({
       type: "input",
       name: "authToken",
       message:
         "Enter your Trello auth token (see: https://developers.trello.com/page/authorization)"
     });
-    authToken = response.authToken;
-    config.set("authToken", authToken);
+    conf.set("authToken", response.authToken);
+  }
+}
+
+async function checkForBoardId() {
+  if (!conf.get("boardId")) {
+    await promptForBoardId();
   }
 }
 
 async function checkForTopicId() {
-  if (!topicId) {
+  if (!conf.get("topicId")) {
     await promptForTopic();
   }
 }
@@ -108,14 +113,23 @@ const questionCmd = {
     if (!question) {
       question = await promptForQuestion();
     }
-    saveQuestion(question, topicId);
+    saveQuestion(question, conf.get("topicId"));
   }
 };
+
+async function promptForBoardId() {
+  const response = await inquirer.prompt({
+    type: "input",
+    name: "boardId",
+    message: "Enter your board ID"
+  });
+  conf.set("boardId", response.boardId);
+}
 
 async function promptForTopic() {
   const spinner = ora("Fetching topics");
   spinner.start();
-  const resp = await getTopics(boardId);
+  const resp = await getTopics(conf.get("boardId"));
   spinner.stop();
   const topics = resp.data.map(topic => ({
     name: topic.name,
@@ -128,27 +142,20 @@ async function promptForTopic() {
     message: "Select a topic:",
     choices: topics
   });
-  topicId = response.topic;
-  config.set("topicId", topicId);
+  conf.set("topicId", response.topicId);
 }
 
 async function main() {
-  await authorize();
-  await checkForTopicId();
+  // await authorize();
+  // await checkForTopicId();
 
-  if (!boardId) {
-    const response = await inquirer.prompt({
-      type: "input",
-      name: "boardId",
-      message: "Enter your board ID"
-    });
-    boardId = response.boardId;
-    config.set("boardId", boardId);
-  }
+  // if (!conf.get("boardId")) {
+  //   await promptForBoardId();
+  // }
 
-  if (!topicId) {
-    promptForTopic();
-  }
+  // if (!conf.get("topicId")) {
+  //   await promptForTopic();
+  // }
 
   yargs.command(questionCmd).command({
     command: "config <setting>",
@@ -159,19 +166,19 @@ async function main() {
         case "boardId":
           const boardId = argv._[1];
           if (boardId) {
-            config.set("boardId", boardId);
+            conf.set("boardId", boardId);
             console.log(chalk.green.bold(`boardId set to "${boardId}"`));
           } else {
-            console.log(`boardId: ${config.get("boardId")}`);
+            console.log(`boardId: ${conf.get("boardId")}`);
           }
           break;
 
         case "info":
-          console.log(`Config located at: ${config.path}`);
+          console.log(`Config located at: ${conf.path}`);
           const table = new Table({
             head: ["Setting", "Value"]
           });
-          table.push(...Object.entries(config.store));
+          table.push(...Object.entries(conf.store));
           console.log(table.toString());
           break;
 
