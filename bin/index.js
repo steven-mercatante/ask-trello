@@ -112,6 +112,17 @@ const questionCmd = {
   aliases: ["q"],
   desc: "Ask a question",
   handler: async argv => {
+    await authorize();
+    await checkForTopicId();
+
+    if (!conf.get("boardId")) {
+      await promptForBoardId();
+    }
+
+    if (!conf.get("topicId")) {
+      await promptForTopic();
+    }
+
     let question = argv._.slice(1)
       .join(" ")
       .trim();
@@ -151,17 +162,6 @@ async function promptForTopic() {
 }
 
 async function main() {
-  // await authorize();
-  // await checkForTopicId();
-
-  // if (!conf.get("boardId")) {
-  //   await promptForBoardId();
-  // }
-
-  // if (!conf.get("topicId")) {
-  //   await promptForTopic();
-  // }
-
   yargs.command(questionCmd).command({
     command: "config <setting>",
     desc: "Set configuration options",
