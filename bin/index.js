@@ -7,6 +7,7 @@ const ora = require("ora");
 const yargs = require("yargs");
 const Conf = require("conf");
 const Table = require("cli-table");
+const { successMsg, errorMsg } = require("./utils");
 
 const conf = new Conf();
 const config = {
@@ -36,7 +37,7 @@ function saveQuestion(question, topicId) {
       token: config.authToken
     })
     .then(resp => {
-      console.log(chalk.green.bold("Success!"));
+      successMsg(chalk.green.bold("Success!"));
     })
     .catch(err => {
       printError(err);
@@ -45,7 +46,7 @@ function saveQuestion(question, topicId) {
 
 function printError(err) {
   const { status, data } = err.response;
-  console.log(chalk.red.bold(`A ${status} error occurred: "${data}"`));
+  errorMsg(`A ${status} error occurred: "${data}"`);
 }
 
 async function promptForQuestion() {
@@ -172,9 +173,9 @@ async function main() {
           const boardId = argv._[1];
           if (boardId) {
             conf.set("boardId", boardId);
-            console.log(chalk.green.bold(`boardId set to "${boardId}"`));
+            successMsg(chalk.green.bold(`boardId set to "${boardId}"`));
           } else {
-            console.log(`boardId: ${conf.get("boardId")}`);
+            errorMsg(`boardId: ${conf.get("boardId")}`);
           }
           break;
 
@@ -209,7 +210,7 @@ async function main() {
           break;
 
         default:
-          console.log(chalk.red.bold(`Unknown setting "${setting}"`));
+          errorMsg(chalk.red.bold(`Unknown setting "${setting}"`));
           process.exit();
       }
     }
