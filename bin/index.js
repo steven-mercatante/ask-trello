@@ -75,24 +75,29 @@ async function getTopic(topicId) {
   return resp;
 }
 
+async function promptForConfig(key, msg) {
+  const response = await inquirer.prompt({
+    type: "input",
+    name: key,
+    message: msg
+  });
+  config[key] = response[key];
+  conf.set(key, response[key]);
+}
+
 async function authorize() {
-  if (!config["apiKey"]) {
-    const response = await inquirer.prompt({
-      type: "input",
-      name: "apiKey",
-      message: "Enter your Trello API key (see https://trello.com/app-key/)"
-    });
-    conf.set("apiKey", response.apiKey);
+  if (!config.apiKey) {
+    promptForConfig(
+      "apiKey",
+      "Enter your Trello API key (see https://trello.com/app-key/)"
+    );
   }
 
   if (!config.authToken) {
-    const response = await inquirer.prompt({
-      type: "input",
-      name: "authToken",
-      message:
-        "Enter your Trello auth token (see: https://developers.trello.com/page/authorization)"
-    });
-    conf.set("authToken", response.authToken);
+    promptForConfig(
+      "authToken",
+      "Enter your Trello auth token (see: https://developers.trello.com/page/authorization)"
+    );
   }
 }
 
@@ -114,15 +119,8 @@ const questionCmd = {
   desc: "Ask a question",
   handler: async argv => {
     await authorize();
+    await checkForBoardId();
     await checkForTopicId();
-
-    if (!conf.get("boardId")) {
-      await promptForBoardId();
-    }
-
-    if (!conf.get("topicId")) {
-      await promptForTopic();
-    }
 
     let question = argv._.slice(1)
       .join(" ")
@@ -135,18 +133,13 @@ const questionCmd = {
 };
 
 async function promptForBoardId() {
-  const response = await inquirer.prompt({
-    type: "input",
-    name: "boardId",
-    message: "Enter your board ID"
-  });
-  conf.set("boardId", response.boardId);
+  promptForConfig("boardId", "Enter your board ID");
 }
 
 async function promptForTopic() {
   const spinner = ora("Fetching topics");
   spinner.start();
-  const resp = await getTopics(conf.get("boardId"));
+  const resp = await getTopics(config.boardId);
   spinner.stop();
   const topics = resp.data.map(topic => ({
     name: topic.name,
