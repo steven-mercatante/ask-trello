@@ -11,7 +11,9 @@ const {
 
 module.exports = {
   command: "config <setting>",
-  desc: "Set configuration options",
+  desc: `Set configuration options
+  
+  usage: idea config [<options>]`,
   handler: async argv => {
     const { setting } = argv;
     switch (setting) {
@@ -38,8 +40,7 @@ module.exports = {
 
       case "topic":
         // TODO: rename directive to ...?
-        const directive = argv._[1] && argv._[1].trim();
-        if (directive === "set") {
+        if (argv.select === true) {
           await promptForTopic();
         } else {
           try {
