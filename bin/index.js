@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
-const yargs = require("yargs");
-
-yargs.commandDir("commands").help().argv;
+require("yargs")
+  .commandDir("commands")
+  .demandCommand()
+  .help().argv;
