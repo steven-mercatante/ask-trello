@@ -26,10 +26,10 @@ const config = {
 
 // TODO: you should be able to call config command without having been prev authenticated
 
-function saveQuestion(question, topicId) {
+function saveIdea(idea, topicId) {
   axios
     .post("https://api.trello.com/1/cards", {
-      name: question,
+      name: idea,
       idList: topicId,
       pos: "top",
       key: config.apiKey,
@@ -48,13 +48,13 @@ function printError(err) {
   errorMsg(`A ${status} error occurred: "${data}"`);
 }
 
-async function promptForQuestion() {
+async function promptForIdea() {
   const response = await inquirer.prompt({
     type: "input",
-    name: "question",
-    message: "What's your question, friend?" // TODO: change message
+    name: "idea",
+    message: "What's your idea, friend?" // TODO: change message
   });
-  return response.question;
+  return response.idea;
 }
 
 async function getTopics(boardId) {
@@ -143,12 +143,11 @@ const ideaCmd = {
     await checkForBoardId();
     await checkForTopicId();
 
-    // TODO: rename question to idea
-    let question = argv._.join(" ").trim();
-    if (!question) {
-      question = await promptForQuestion();
+    let idea = argv._.join(" ").trim();
+    if (!idea) {
+      idea = await promptForIdea();
     }
-    saveQuestion(question, conf.get("topicId"));
+    saveIdea(idea, conf.get("topicId"));
   }
 };
 
