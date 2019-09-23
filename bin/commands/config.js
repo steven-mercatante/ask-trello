@@ -16,13 +16,12 @@ module.exports = {
     const { setting } = argv;
     switch (setting) {
       case "boardId":
-        // TODO: API for this should match topic.
         const boardId = argv._[1];
         if (boardId) {
           conf.set("boardId", boardId);
           successMsg(`boardId set to "${boardId}"`);
         } else {
-          errorMsg(`boardId: ${conf.get("boardId")}`);
+          console.log(conf.get("boardId"));
         }
         break;
 
