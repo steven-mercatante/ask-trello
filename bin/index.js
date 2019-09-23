@@ -52,7 +52,7 @@ async function promptForQuestion() {
   const response = await inquirer.prompt({
     type: "input",
     name: "question",
-    message: "What's your question, friend?"
+    message: "What's your question, friend?" // TODO: change message
   });
   return response.question;
 }
@@ -112,25 +112,6 @@ async function checkForTopicId() {
   }
 }
 
-const questionCmd = {
-  command: "question",
-  aliases: ["q"],
-  desc: "Ask a question",
-  handler: async argv => {
-    await authorize();
-    await checkForBoardId();
-    await checkForTopicId();
-
-    let question = argv._.slice(1)
-      .join(" ")
-      .trim();
-    if (!question) {
-      question = await promptForQuestion();
-    }
-    saveQuestion(question, conf.get("topicId"));
-  }
-};
-
 async function promptForBoardId() {
   promptForConfig("boardId", "Enter your board ID");
 }
@@ -154,8 +135,25 @@ async function promptForTopic() {
   conf.set("topicId", response.topicId);
 }
 
+const ideaCmd = {
+  command: "$0",
+  desc: "Save an idea",
+  handler: async argv => {
+    await authorize();
+    await checkForBoardId();
+    await checkForTopicId();
+
+    // TODO: rename question to idea
+    let question = argv._.join(" ").trim();
+    if (!question) {
+      question = await promptForQuestion();
+    }
+    saveQuestion(question, conf.get("topicId"));
+  }
+};
+
 async function main() {
-  yargs.command(questionCmd).command({
+  yargs.command(ideaCmd).command({
     command: "config <setting>",
     desc: "Set configuration options",
     handler: async argv => {
