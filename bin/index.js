@@ -26,10 +26,10 @@ const config = {
 
 // TODO: you should be able to call config command without having been prev authenticated
 
-function saveQuestion(question, topicId) {
+function saveIdea(idea, topicId) {
   axios
     .post("https://api.trello.com/1/cards", {
-      name: question,
+      name: idea,
       idList: topicId,
       pos: "top",
       key: config.apiKey,
@@ -48,13 +48,13 @@ function printError(err) {
   errorMsg(`A ${status} error occurred: "${data}"`);
 }
 
-async function promptForQuestion() {
+async function promptForIdea() {
   const response = await inquirer.prompt({
     type: "input",
-    name: "question",
-    message: "What's your question, friend?"
+    name: "idea",
+    message: "What's your idea, friend?" // TODO: change message
   });
-  return response.question;
+  return response.idea;
 }
 
 async function getTopics(boardId) {
@@ -112,25 +112,6 @@ async function checkForTopicId() {
   }
 }
 
-const questionCmd = {
-  command: "question",
-  aliases: ["q"],
-  desc: "Ask a question",
-  handler: async argv => {
-    await authorize();
-    await checkForBoardId();
-    await checkForTopicId();
-
-    let question = argv._.slice(1)
-      .join(" ")
-      .trim();
-    if (!question) {
-      question = await promptForQuestion();
-    }
-    saveQuestion(question, conf.get("topicId"));
-  }
-};
-
 async function promptForBoardId() {
   promptForConfig("boardId", "Enter your board ID");
 }
@@ -154,8 +135,24 @@ async function promptForTopic() {
   conf.set("topicId", response.topicId);
 }
 
+const ideaCmd = {
+  command: "$0",
+  desc: "Save an idea",
+  handler: async argv => {
+    await authorize();
+    await checkForBoardId();
+    await checkForTopicId();
+
+    let idea = argv._.join(" ").trim();
+    if (!idea) {
+      idea = await promptForIdea();
+    }
+    saveIdea(idea, conf.get("topicId"));
+  }
+};
+
 async function main() {
-  yargs.command(questionCmd).command({
+  yargs.command(ideaCmd).command({
     command: "config <setting>",
     desc: "Set configuration options",
     handler: async argv => {
